@@ -1,0 +1,18 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+version: '3.4'
+
+services:
+  semaphoreworkflow:
+    image: semaphoreworkflow
+    build:
+      context: .
+      dockerfile: SemaphoreWorkflow/Dockerfile
+      args:
+        - configuration=Debug
+    ports:
+      - 5116:5116
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ~/.vsdbg:/remote_debugger:rw
