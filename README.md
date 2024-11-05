@@ -115,7 +115,7 @@ The minimum time for throttling in this Docker Compose environment is around 5ms
 
 **logLevel** - The *default* is `Info` (1) but can be set to `Debug` (0)
 
-```json
+```shell
 curl --request POST \
   --url http://localhost:3500/v1.0-beta1/workflows/dapr/throttle/raiseEvent/adjust \
   --header 'Content-Type: application/json' \
