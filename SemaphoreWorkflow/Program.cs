@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Dapr.Client;
 using Dapr.Workflow;
 using Microsoft.AspNetCore.Mvc;
 using SemaphoreWorkflow;
@@ -52,6 +50,7 @@ app.MapGet("/throttle/{id}/status", async (string id, DaprWorkflowClient grpcCli
     var result = new
     {
         Summary = throttle.ReadCustomStatusAs<ThrottleSummary>(),
+        Config = throttle.ReadInputAs<ThrottleState>()?.RuntimeConfig,
         Logs = throttle.ReadInputAs<ThrottleState>()?.PersistentLog
     };
     return result;

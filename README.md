@@ -41,13 +41,17 @@ curl --request GET \
 ```json
 {
 	"summary": {
-		"status": "WAITING",
-		"maxWaits": 3,
 		"activeWaits": 0,
-		"pendingWaits": 0
+		"pendingWaits": 0,
+		"completedWaits": 0
+	},
+	"config": {
+		"maxConcurrency": 10,
+		"defaultTTLInSeconds": 1000,
+		"logLevel": 1,
+		"logCompletedWaits": true
 	},
 	"logs": [
-		...
     ]
 }
 ```
@@ -69,7 +73,6 @@ curl --request POST \
 	"instanceIds": [
 		"404d8780-0",
 		"404d8780-1",
-		...
 	]
 }
 ```
@@ -102,18 +105,19 @@ The minimum time for throttling in this Docker Compose environment is around 5ms
 		"rtstatus": 1,
 		"status": "SIGNALLED",
 		"output": "workflow throttled for 7ms"
-	},
-	...
+	}
 ]
 ```
 
 ### Adjusting the configuration of the Throttle
 
-**MaxConcurrency** - Increase or decrease this property to change the max level of concurrency
+**MaxConcurrency** : Increase or decrease this property to change the max level of concurrency
 
-**DefaultTTLInSeconds** - This implementation bias towards temporarily allowing exceeding the maximum concurrency limit, versus, the Throttle become irrecoverably deadlocked, which, is likely the most favourable outcome for a majority of use-cases. By default, if the Throttle Workflow doesn't receive a signal event for 120 seconds, it will be auto-signalled. This is to ensure that the Throttle workflow doesn't become deadlocked waiting on signals that will perhaps never arrive. The TTL can be adjusted to any value which matches the use-case at hand.
+**DefaultTTLInSeconds** : This implementation bias towards temporarily allowing exceeding the maximum concurrency limit, versus, the Throttle become irrecoverably deadlocked, which, is likely the most favourable outcome for a majority of use-cases. By default, if the Throttle Workflow doesn't receive a signal event for 120 seconds, it will be auto-signalled. This is to ensure that the Throttle workflow doesn't become deadlocked waiting on signals that will perhaps never arrive. The TTL can be adjusted to any value which matches the use-case at hand.
 
-**logLevel** - The *default* is `Info` (1) but can be set to `Debug` (0)
+**logLevel** : The *default* is `Info` (1) but can be set to `Debug` (0)
+
+**LogCompletedWaits** : The *default* is `true`. Set to `false` to stop maintaining a log of all completed waits. Probably best to set this to `false` in production to prevent an ever growing collection.
 
 ```shell
 curl --request POST \

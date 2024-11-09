@@ -20,6 +20,8 @@ namespace SemaphoreWorkflow.Activities
 
             await _daprWorkflowClient.RaiseEventAsync(proceed.InstanceId, proceed.ProceedEventName, proceed);
 
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raised {proceed.ProceedEventName.ToUpper()} event to : {proceed.InstanceId} workflow");
+
             return true;
         }
     }
@@ -37,9 +39,11 @@ namespace SemaphoreWorkflow.Activities
 
         public override async Task<bool> RunAsync(WorkflowActivityContext context, WaitEvent wait)
         {
-            this.logger.LogInformation($"{context.InstanceId} ] Raising WAIT event to 'throttle' workflow");
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raising WAIT event to 'throttle' workflow");
 
             await _daprWorkflowClient.RaiseEventAsync("throttle", "wait", wait);
+
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raised WAIT event to 'throttle' workflow");
 
             return true;
         }
@@ -61,6 +65,8 @@ namespace SemaphoreWorkflow.Activities
             this.logger.LogInformation($"[ {context.InstanceId} ] Raising SIGNAL event to 'throttle' workflow");
 
             await _daprWorkflowClient.RaiseEventAsync("throttle", "signal", signal);
+
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raised SIGNAL event to 'throttle' workflow");
 
             return true;
         }

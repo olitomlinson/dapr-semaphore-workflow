@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Reflection.Metadata.Ecma335;
 using Dapr.Workflow;
 using SemaphoreWorkflow.Activities;
 
@@ -57,10 +56,9 @@ namespace SemaphoreWorkflow.Workflows
 
             context.SetCustomStatus(new ThrottleSummary
             {
-                Status = "WAITING",
-                MaxWaits = state.RuntimeConfig.MaxConcurrency,
                 ActiveWaits = state.ActiveWaits.Count(),
-                PendingWaits = state.PendingWaits.Count()
+                PendingWaits = state.PendingWaits.Count(),
+                CompletedWaits = state.CompletedWaits.Count()
             });
 
             var winner = await Task.WhenAny(wait, signal, adjust, clearLogs, expiryScan);
@@ -133,12 +131,15 @@ namespace SemaphoreWorkflow.Workflows
 
             return (wait, signal, adjust, clearLogs, expiryScan, expiryScanCts);
         }
+
         private async Task<bool> HandlePendingSignals(WorkflowContext context, ThrottleState state)
         {
             while (state.PendingSignals.Any())
             {
                 var signal1 = state.PendingSignals.Dequeue();
                 state.ActiveWaits.Remove(signal1.InstanceId, out WaitEvent _);
+                if (state.RuntimeConfig.LogCompletedWaits)
+                    state.CompletedWaits.Add(signal1.InstanceId, context.CurrentUtcDateTime);
 
                 // return true if all new pending signals have been processed
                 if (!state.PendingSignals.Any())
@@ -196,17 +197,20 @@ namespace SemaphoreWorkflow.Workflows
         public Queue<WaitEvent> PendingWaits { get; set; } = new Queue<WaitEvent>();
         public ConcurrentDictionary<string, WaitEvent> ActiveWaits { get; set; } = new ConcurrentDictionary<string, WaitEvent>();
         public Queue<SignalEvent> PendingSignals { get; set; } = new Queue<SignalEvent>();
+        public Dictionary<string, DateTime> CompletedWaits { get; set; } = new Dictionary<string, DateTime>();
         public List<string> PersistentLog { get; set; } = new List<string>();
         public bool DoExpiryScan { get; set; }
     }
 
     public class RuntimeConfig
     {
-        public int MaxConcurrency { get; set; } = 3;
+        public int MaxConcurrency { get; set; } = 10;
 
-        public int DefaultTTLInSeconds { get; set; } = 120;
+        public int DefaultTTLInSeconds { get; set; } = 1000;
 
         public LogLevel logLevel { get; set; } = LogLevel.Info;
+
+        public bool LogCompletedWaits { get; set; } = true;
     }
 
     public enum LogLevel
@@ -217,9 +221,8 @@ namespace SemaphoreWorkflow.Workflows
 
     public class ThrottleSummary
     {
-        public string Status { get; set; }
-        public int MaxWaits { get; set; }
         public int ActiveWaits { get; set; }
         public int PendingWaits { get; set; }
+        public int CompletedWaits { get; set; }
     }
 }
