@@ -52,7 +52,7 @@ namespace SemaphoreWorkflow.Workflows
             await SendProceedEvents(context, state);
 
             // Step 4. register runtime to wait for various external events...
-            var (wait, signal, adjust, clearLogs, expiryScan, expiryScanCts) = CreateSignals(context);
+            var (wait, waitCts, signal, signalCts, adjust, clearLogs, expiryScan, expiryScanCts) = CreateSignals(context);
 
             context.SetCustomStatus(new ThrottleSummary
             {
@@ -65,6 +65,8 @@ namespace SemaphoreWorkflow.Workflows
             if (winner == wait)
             {
                 expiryScanCts.Cancel();
+                signalCts.Cancel();
+
                 #region Expiry handling
                 if (state.RuntimeConfig.DefaultTTLInSeconds > 0 && !wait.Result.Expiry.HasValue)
                     wait.Result.Expiry = context.CurrentUtcDateTime.AddSeconds(state.RuntimeConfig.DefaultTTLInSeconds);
@@ -74,23 +76,33 @@ namespace SemaphoreWorkflow.Workflows
             }
             else if (winner == signal)
             {
+                waitCts.Cancel();
                 expiryScanCts.Cancel();
+
                 state.PendingSignals.Enqueue(signal.Result);
                 Log(state, LogLevel.Debug, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Received SIGNAL event from {signal.Result.InstanceId} workflow");
             }
             else if (winner == adjust)
             {
+                waitCts.Cancel();
+                signalCts.Cancel();
                 expiryScanCts.Cancel();
+
                 state.RuntimeConfig = adjust.Result;
             }
             else if (winner == clearLogs)
             {
+                waitCts.Cancel();
+                signalCts.Cancel();
                 expiryScanCts.Cancel();
+
                 state.PersistentLog = [];
                 Log(state, LogLevel.Debug, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Logs cleared manually");
             }
             else if (winner == expiryScan)
             { // no-op 
+                waitCts.Cancel();
+                signalCts.Cancel();
             }
             else
                 throw new Exception("unknown event");
@@ -120,16 +132,18 @@ namespace SemaphoreWorkflow.Workflows
             }
             Log(state, LogLevel.Debug, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Active {state.ActiveWaits.Count}, Pending {state.PendingWaits.Count}");
         }
-        private static (Task<WaitEvent> wait, Task<SignalEvent> signal, Task<RuntimeConfig> adjust, Task<bool> clearLogs, Task expiryScan, CancellationTokenSource cts) CreateSignals(WorkflowContext context)
+        private static (Task<WaitEvent> wait, CancellationTokenSource waitCts, Task<SignalEvent> signal, CancellationTokenSource signalCts, Task<RuntimeConfig> adjust, Task<bool> clearLogs, Task expiryScan, CancellationTokenSource cts) CreateSignals(WorkflowContext context)
         {
-            var wait = context.WaitForExternalEventAsync<WaitEvent>("wait");
-            var signal = context.WaitForExternalEventAsync<SignalEvent>("signal");
+            var waitCts = new CancellationTokenSource();
+            var wait = context.WaitForExternalEventAsync<WaitEvent>("wait", waitCts.Token);
+            var signalCts = new CancellationTokenSource();
+            var signal = context.WaitForExternalEventAsync<SignalEvent>("signal", signalCts.Token);
             var adjust = context.WaitForExternalEventAsync<RuntimeConfig>("adjust");
             var clearLogs = context.WaitForExternalEventAsync<bool>("clearlogs");
             var expiryScanCts = new CancellationTokenSource();
             var expiryScan = context.CreateTimer(TimeSpan.FromSeconds(15), expiryScanCts.Token);
 
-            return (wait, signal, adjust, clearLogs, expiryScan, expiryScanCts);
+            return (wait, waitCts, signal, signalCts, adjust, clearLogs, expiryScan, expiryScanCts);
         }
 
         private async Task<bool> HandlePendingSignals(WorkflowContext context, ThrottleState state)
