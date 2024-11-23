@@ -18,6 +18,7 @@ builder.Services.AddDaprWorkflow(options =>
         {
             options.RegisterWorkflow<ThrottleWorkflow>();
             options.RegisterWorkflow<ConstrainedWorkflow>();
+            options.RegisterWorkflow<AggregatorWorkflow>();
         }
 
         if (registerActivities)
@@ -142,6 +143,20 @@ app.MapGet("/check", async ([FromQuery(Name = "session")] string? session, [From
     });
 
     return res2;
+});
+
+app.MapPost("/produce", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
+{
+    var cts = new CancellationTokenSource();
+    var options = new ParallelOptions() { MaxDegreeOfParallelism = parallel.Value, CancellationToken = cts.Token };
+    await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
+    {
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator", "DECR", true);
+
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator", "INCR", true);
+    });
 });
 
 app.MapGet("/", () => "Hello World!");
