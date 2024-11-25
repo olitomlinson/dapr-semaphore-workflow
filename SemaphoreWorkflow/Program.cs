@@ -176,10 +176,8 @@ app.MapPost("/aggregator5", async ([FromQuery(Name = "prefix")] string? prefix, 
     await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
     {
         await Task.Delay(sleep.Value);
-        if (i % 2 == 0)
-            await grpcClient.RaiseEventAsync("aggregator5", "DECR", $"p-decr-{i + 1}");
-        else
-            await grpcClient.RaiseEventAsync("aggregator5", "INCR", $"p-incr-{i + 1}");
+
+        await grpcClient.RaiseEventAsync("aggregator5", "INCR", $"p-incr-{i + 1}");
     });
 });
 
