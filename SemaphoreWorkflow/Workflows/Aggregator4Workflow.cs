@@ -19,23 +19,21 @@ namespace SemaphoreWorkflow.Workflows
             }
             state.Seq += 1;
 
-            var incr = context.WaitForExternalEventAsync<bool>("INCR");
-            var decr = context.WaitForExternalEventAsync<bool>("DECR");
+            var incr = context.WaitForExternalEventAsync<string>("INCR");
+            var decr = context.WaitForExternalEventAsync<string>("DECR");
 
             await Task.WhenAny(incr, decr);
-
-            await context.CreateTimer(TimeSpan.FromMilliseconds(200));
 
             if (incr.IsCompletedSuccessfully)
             {
                 state.Total += 1;
-                Log(state, LogLevel.Info, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Received INCR event, total is now {state.Total}");
+                Log(state, LogLevel.Info, $"[{context.CurrentUtcDateTime:HH:mm:ss.fffffff}] Received INCR event ({incr.Result}), total is now {state.Total}, seq {state.Seq}");
             }
 
             if (decr.IsCompletedSuccessfully)
             {
                 state.Total -= 1;
-                Log(state, LogLevel.Info, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Received DECR event, total is now {state.Total}");
+                Log(state, LogLevel.Info, $"[{context.CurrentUtcDateTime:HH:mm:ss.fffffff}] Received DECR event ({decr.Result}), total is now {state.Total}, seq {state.Seq}");
             }
 
             context.ContinueAsNew(state, true);
