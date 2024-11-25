@@ -56,5 +56,7 @@ namespace SemaphoreWorkflow.Workflows
         public RuntimeConfig RuntimeConfig { get; set; } = new RuntimeConfig();
         public List<string> PersistentLog { get; set; } = new List<string>();
         public int Total { get; set; }
+
+        public int Seq { get; set; }
     }
 }

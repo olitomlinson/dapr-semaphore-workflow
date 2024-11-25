@@ -22,7 +22,7 @@ services:
       "-scheduler-host-address", "scheduler-0:50006",
       "-resources-path", "/components",
       "-config", "/dapr-config/config.yml",
-      "-log-level","info",
+      "-log-level","debug",
       "-enable-app-health-check", "true",
       "-app-health-check-path", "/health",
       "-app-health-probe-interval", "10",

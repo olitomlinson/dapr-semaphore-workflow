@@ -19,6 +19,9 @@ builder.Services.AddDaprWorkflow(options =>
             options.RegisterWorkflow<ThrottleWorkflow>();
             options.RegisterWorkflow<ConstrainedWorkflow>();
             options.RegisterWorkflow<AggregatorWorkflow>();
+            options.RegisterWorkflow<Aggregator2Workflow>();
+            options.RegisterWorkflow<Aggregator3Workflow>();
+            options.RegisterWorkflow<Aggregator4Workflow>();
         }
 
         if (registerActivities)
@@ -145,7 +148,7 @@ app.MapGet("/check", async ([FromQuery(Name = "session")] string? session, [From
     return res2;
 });
 
-app.MapPost("/produce", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
+app.MapPost("/aggregator", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
 {
     var cts = new CancellationTokenSource();
     var options = new ParallelOptions() { MaxDegreeOfParallelism = parallel.Value, CancellationToken = cts.Token };
@@ -156,6 +159,48 @@ app.MapPost("/produce", async ([FromQuery(Name = "prefix")] string? prefix, [Fro
 
         await Task.Delay(sleep.Value);
         await grpcClient.RaiseEventAsync("aggregator", "INCR", true);
+    });
+});
+
+app.MapPost("/aggregator2", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
+{
+    var cts = new CancellationTokenSource();
+    var options = new ParallelOptions() { MaxDegreeOfParallelism = parallel.Value, CancellationToken = cts.Token };
+    await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
+    {
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator2", "DECR", true);
+
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator2", "INCR", true);
+    });
+});
+
+app.MapPost("/aggregator3", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
+{
+    var cts = new CancellationTokenSource();
+    var options = new ParallelOptions() { MaxDegreeOfParallelism = parallel.Value, CancellationToken = cts.Token };
+    await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
+    {
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator3", "DECR", true);
+
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator3", "INCR", true);
+    });
+});
+
+app.MapPost("/aggregator4", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, [FromQuery(Name = "parallel")] int? parallel, DaprWorkflowClient grpcClient) =>
+{
+    var cts = new CancellationTokenSource();
+    var options = new ParallelOptions() { MaxDegreeOfParallelism = parallel.Value, CancellationToken = cts.Token };
+    await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
+    {
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator4", "DECR", true);
+
+        await Task.Delay(sleep.Value);
+        await grpcClient.RaiseEventAsync("aggregator4", "INCR", true);
     });
 });
 
