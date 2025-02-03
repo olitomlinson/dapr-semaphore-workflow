@@ -181,6 +181,17 @@ app.MapPost("/aggregator5", async ([FromQuery(Name = "prefix")] string? prefix, 
     });
 });
 
+app.MapGet("/aggregator5", async (DaprWorkflowClient grpcClient) =>
+{
+    var result = await grpcClient.GetWorkflowStateAsync("aggregator5", true);
+    return new
+    {
+        Input = result.ReadInputAs<AggregatorState>(),
+        Output = result.ReadOutputAs<bool>(),
+    };
+});
+
+
 app.MapGet("/", () => "Hello World!");
 
 app.Run();
