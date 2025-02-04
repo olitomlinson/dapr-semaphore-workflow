@@ -14,7 +14,7 @@ services:
     networks:
       - network
   semaphoreworkflow-dapr:
-    image: "daprio/daprd:1.15.0-rc.9"
+    image: "daprio/daprd:1.15.0-rc.10"
     command: ["./daprd",
       "-app-id", "semaphore",
       "-app-port", "5116",
@@ -23,11 +23,12 @@ services:
       "-resources-path", "/components",
       "-config", "/dapr-config/config.yml",
       "-log-level","debug",
-      "-enable-app-health-check", "true",
-      "-app-health-check-path", "/health",
-      "-app-health-probe-interval", "10",
-      "-app-health-probe-timeout", "1000",
-      "-app-health-threshold", "1"]
+      # "-enable-app-health-check", "true",
+      # "-app-health-check-path", "/health",
+      # "-app-health-probe-interval", "10",
+      # "-app-health-probe-timeout", "1000",
+      # "-app-health-threshold", "1"
+      ]
     volumes:
       - "./components/:/components"
       - "./dapr-config/:/dapr-config"
@@ -41,7 +42,7 @@ services:
   # # Dapr Scheduler service
   # ############################
   scheduler-0:
-    image: "daprio/dapr:1.15.0-rc.9"
+    image: "daprio/dapr:1.15.0-rc.10"
     command: ["./scheduler", 
       "--etcd-data-dir", "/var/run/dapr/scheduler",
       "--initial-cluster", "scheduler-0=http://scheduler-0:2380",
@@ -55,7 +56,7 @@ services:
   # Dapr placement service
   ############################
   placement:
-    image: "daprio/dapr:1.15.0-rc.9"
+    image: "daprio/dapr:1.15.0-rc.10"
     command: ["./placement", 
     "-port", "50005",
     "-log-level","warn"]

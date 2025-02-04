@@ -26,23 +26,23 @@ namespace SemaphoreWorkflow.Workflows
             // Step 1. Scan for expired waits...
 
             // Sometimes a downstream workflow will not send it's signal, the consequence of this happening is that
-            // eventually with enough failures, the semaphore will become blocked and no new downstream workflows will 
+            // eventually with enough missing signals, the semaphore will become blocked and no new downstream workflows will 
             // be able to progress.
 
-            // So, every 15s we can scan the 'activeWaits' and if it has exceeded its ttl (default 30s) then a virtual signal 
+            // So, every 15s we can scan the 'activeWaits' and if it has exceeded its ttl (default 30s) we determine that the wait has 'expired' - then a virtual/fake signal 
             // is injected to unblock the sempahore.
 
             // note: we only do the Expiry check on every second itteration of the workflow (state.DoExpiryScan toggles 
             // between false and true on each itteration) - this is because during times where lots of waits are expiring, we 
             // want to occasionally bypass the expiry check and make sure the semaphore is actually running at max 
             // capacity (Step 2 & 3), rather than becoming flooded with only handling expired waits.
-            await PerformExpiryScan(context, state);
+            await ScanForExpiredWaits(context, state);
 
             // Step 2. Handle any signals first... (which will free-up capacity in the semaphore for step 3)
-            if (await HandlePendingSignals(context, state))
+            if (await HandleAllPendingSignals(context, state))
             {
-                // Technically, we don't have ContinueAsNew Here, but it allows us to do a 
-                // GET on the workflow and see the state accurately
+                // Technically, we don't have to do a `ContinueAsNew` here, but it allows us to do a 
+                // GET operation on the workflow instance and see the state accurately
                 context.ContinueAsNew(state, true);
                 return true;
             }
@@ -67,7 +67,7 @@ namespace SemaphoreWorkflow.Workflows
                 expiryScanCts.Cancel();
                 signalCts.Cancel();
 
-                #region Expiry handling
+                #region Apply default Expiry handling policy, if one isn't specified on the wait event
                 if (state.RuntimeConfig.DefaultTTLInSeconds > 0 && !wait.Result.Expiry.HasValue)
                     wait.Result.Expiry = context.CurrentUtcDateTime.AddSeconds(state.RuntimeConfig.DefaultTTLInSeconds);
                 #endregion
@@ -146,7 +146,7 @@ namespace SemaphoreWorkflow.Workflows
             return (wait, waitCts, signal, signalCts, adjust, clearLogs, expiryScan, expiryScanCts);
         }
 
-        private async Task<bool> HandlePendingSignals(WorkflowContext context, ThrottleState state)
+        private async Task<bool> HandleAllPendingSignals(WorkflowContext context, ThrottleState state)
         {
             while (state.PendingSignals.Any())
             {
@@ -161,7 +161,7 @@ namespace SemaphoreWorkflow.Workflows
             }
             return false;
         }
-        private async Task PerformExpiryScan(WorkflowContext context, ThrottleState state)
+        private async Task ScanForExpiredWaits(WorkflowContext context, ThrottleState state)
         {
             if (state.DoExpiryScan)
             {
