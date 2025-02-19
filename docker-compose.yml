@@ -14,7 +14,7 @@ services:
     networks:
       - network
   semaphoreworkflow-dapr:
-    image: "daprio/daprd:1.15.0-rc.10"
+    image: "daprio/daprd:1.15.0-rc.14"
     command: ["./daprd",
       "-app-id", "semaphore",
       "-app-port", "5116",
@@ -42,11 +42,9 @@ services:
   # # Dapr Scheduler service
   # ############################
   scheduler-0:
-    image: "daprio/dapr:1.15.0-rc.10"
+    image: "daprio/dapr:1.15.0-rc.14"
     command: ["./scheduler", 
-      "--etcd-data-dir", "/var/run/dapr/scheduler",
-      "--initial-cluster", "scheduler-0=http://scheduler-0:2380",
-      "--id","scheduler-0"
+      "--etcd-data-dir", "/var/run/dapr/scheduler"
     ]
     volumes: 
       - ./dapr_scheduler/0:/var/run/dapr/scheduler
@@ -56,10 +54,10 @@ services:
   # Dapr placement service
   ############################
   placement:
-    image: "daprio/dapr:1.15.0-rc.10"
+    image: "daprio/dapr:1.15.0-rc.14"
     command: ["./placement", 
-    "-port", "50005",
-    "-log-level","warn"]
+      "-port", "50005",
+      "-log-level","warn"]
     networks:
       - network
   postgres-db:
