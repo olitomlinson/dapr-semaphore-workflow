@@ -14,7 +14,7 @@ services:
     networks:
       - network
   semaphoreworkflow-dapr:
-    image: "daprio/daprd:1.15.0-rc.14"
+    image: "daprio/daprd:1.15.3"
     command: ["./daprd",
       "-app-id", "semaphore",
       "-app-port", "5116",
@@ -42,7 +42,7 @@ services:
   # # Dapr Scheduler service
   # ############################
   scheduler-0:
-    image: "daprio/dapr:1.15.0-rc.14"
+    image: "daprio/dapr:1.15.3"
     command: ["./scheduler", 
       "--etcd-data-dir", "/var/run/dapr/scheduler"
     ]
@@ -54,7 +54,7 @@ services:
   # Dapr placement service
   ############################
   placement:
-    image: "daprio/dapr:1.15.0-rc.14"
+    image: "daprio/dapr:1.15.3"
     command: ["./placement", 
       "-port", "50005",
       "-log-level","warn"]
