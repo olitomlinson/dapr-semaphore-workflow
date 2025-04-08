@@ -9,7 +9,7 @@ namespace SemaphoreWorkflow.Workflows
         {
             context.SetCustomStatus("STARTED");
 
-            // 1. let's tell the throttler that we wan't to be told when its our turn to proceeed
+            // 1. let's tell the throttler that we want to be told when its our turn to proceeed
             var waitEvent = new WaitEvent() { InstanceId = context.InstanceId, ProceedEventName = "proceed" };
             var proceedEvent = context.WaitForExternalEventAsync<ProceedEvent>(waitEvent.ProceedEventName);
             var r1 = await context.CallActivityAsync<bool>(nameof(RaiseWaitEventActivity), waitEvent);
