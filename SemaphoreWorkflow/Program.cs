@@ -8,84 +8,78 @@ using SemaphoreWorkflow.Workflows;
 
 var builder = WebApplication.CreateBuilder(args);
 
-bool registerWorkflows = Convert.ToBoolean(Environment.GetEnvironmentVariable("REGISTER_WORKFLOWS"));
-bool registerActivities = Convert.ToBoolean(Environment.GetEnvironmentVariable("REGISTER_ACTIVITIES"));
+var semaphoreWorkflowId = Environment.GetEnvironmentVariable("SEMAPHORE_WORKFLOW_INSTANCE_ID");
 
 builder.Services.AddHttpClient();
 builder.Services.AddDaprWorkflow(options =>
-    {
-        if (registerWorkflows)
-        {
-            options.RegisterWorkflow<ThrottleWorkflow>();
-            options.RegisterWorkflow<ConstrainedWorkflow>();
-            options.RegisterWorkflow<AggregatorWorkflow>();
-            options.RegisterWorkflow<Aggregator2Workflow>();
-            options.RegisterWorkflow<Aggregator3Workflow>();
-            options.RegisterWorkflow<Aggregator4Workflow>();
-            options.RegisterWorkflow<Aggregator5Workflow>();
-        }
+{
+    options.RegisterWorkflow<SemaphoreWorkflow.Workflows.SemaphoreWorkflow>();
+    options.RegisterWorkflow<ConstrainedWorkflow>();
+    options.RegisterWorkflow<AggregatorWorkflow>();
+    options.RegisterWorkflow<Aggregator2Workflow>();
+    options.RegisterWorkflow<Aggregator3Workflow>();
+    options.RegisterWorkflow<Aggregator4Workflow>();
+    options.RegisterWorkflow<Aggregator5Workflow>();
 
-        if (registerActivities)
-        {
-            options.RegisterActivity<VerySlowActivity>();
-            options.RegisterActivity<RaiseProceedEventActivity>();
-            options.RegisterActivity<RaiseSignalEventActivity>();
-            options.RegisterActivity<RaiseWaitEventActivity>();
-        }
-    });
+    options.RegisterActivity<VerySlowActivity>();
+    options.RegisterActivity<RaiseProceedEventActivity>();
+    options.RegisterActivity<RaiseSignalEventActivity>();
+    options.RegisterActivity<RaiseWaitEventActivity>();
+});
 
-builder.Services.AddHttpClient<DaprJobsService>(
-    client =>
-    {
-        client.BaseAddress = new Uri($"http://localhost:{Environment.GetEnvironmentVariable("DAPR_HTTP_PORT")}/v1.0-alpha1/jobs/");
-    });
+builder.Services.AddHttpClient<DaprJobsService>(client =>
+{
+    var daprHttpPort = Environment.GetEnvironmentVariable("DAPR_HTTP_PORT");
+    client.BaseAddress = new Uri($"http://localhost:{daprHttpPort}/v1.0-alpha1/jobs/");
+});
 
 var app = builder.Build();
 
 
 app.MapGet("/health", async (DaprJobsService jobsService) =>
 {
-    await jobsService.EnsureThrottleJobIsRunning();
+    await jobsService.EnsureSemaphoreJobIsRunning(semaphoreWorkflowId);
     app.Logger.LogInformation($"Health is good");
 });
 
-app.MapGet("/throttle/{id}/status", async (string id, DaprWorkflowClient grpcClient) =>
+app.MapGet("/semaphore/status", async (DaprWorkflowClient grpcClient) =>
 {
-    var throttle = await grpcClient.GetWorkflowStateAsync(id, true);
+    var semaphoreState = await grpcClient.GetWorkflowStateAsync(semaphoreWorkflowId, true);
     var result = new
     {
-        Summary = throttle.ReadCustomStatusAs<ThrottleSummary>(),
-        Config = throttle.ReadInputAs<ThrottleState>()?.RuntimeConfig,
-        Logs = throttle.ReadInputAs<ThrottleState>()?.PersistentLog
+        Summary = semaphoreState.ReadCustomStatusAs<SemaphoreSummary>(),
+        Config = semaphoreState.ReadInputAs<SemaphoreState>()?.RuntimeConfig,
+        Logs = semaphoreState.ReadInputAs<SemaphoreState>()?.PersistentLog,
+        CompletedWaits = semaphoreState.ReadInputAs<SemaphoreState>()?.CompletedWaits
     };
     return result;
 });
 
-app.MapPost("/job/ensurethrottle", async (DaprWorkflowClient workflowClient) =>
+app.MapPost("/job/{semaphoreWorkflowId}", async (DaprWorkflowClient workflowClient, string semaphoreWorkflowId) =>
 {
-    var createThrottleWorkflow = false;
+    var createSemaphoreWorkflowInstance = false;
 
     try
     {
-        var throttle = await workflowClient.GetWorkflowStateAsync("throttle", false);
-        if (!throttle.Exists || !throttle.IsWorkflowRunning)
-            createThrottleWorkflow = true;
+        var SemaphoreState = await workflowClient.GetWorkflowStateAsync(semaphoreWorkflowId, false);
+        if (!SemaphoreState.Exists || !SemaphoreState.IsWorkflowRunning)
+            createSemaphoreWorkflowInstance = true;
     }
     catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.Unknown)
     {
         // TODO : refactor this when the wfruntime handles 404 workflows properly
-        createThrottleWorkflow = true;
+        createSemaphoreWorkflowInstance = true;
     }
 
-    if (!createThrottleWorkflow)
+    if (!createSemaphoreWorkflowInstance)
         return;
 
-    app.Logger.LogWarning($"throttle workflow does not exist, attempting to schedule it");
+    app.Logger.LogWarning($"'{semaphoreWorkflowId}' workflow instance does not exist, attempting to schedule it");
 
-    await workflowClient.ScheduleNewWorkflowAsync(nameof(ThrottleWorkflow), "throttle", null);
+    await workflowClient.ScheduleNewWorkflowAsync(nameof(SemaphoreWorkflow.Workflows.SemaphoreWorkflow), semaphoreWorkflowId, null);
 });
 
-app.MapPost("/bulk-schedule", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, DaprWorkflowClient grpcClient) =>
+app.MapPost("/bulk-schedule-constrained-workflows", async ([FromQuery(Name = "prefix")] string? prefix, [FromQuery(Name = "count")] int? count, [FromQuery(Name = "sleep")] int? sleep, DaprWorkflowClient grpcClient) =>
 {
     prefix = string.IsNullOrEmpty(prefix) ? Guid.NewGuid().ToString().Substring(0, 8) : prefix;
     count = !count.HasValue ? 1 : count.Value;

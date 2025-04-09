@@ -4,19 +4,19 @@ using SemaphoreWorkflow.Activities;
 
 namespace SemaphoreWorkflow.Workflows
 {
-    public class ThrottleWorkflow : Workflow<ThrottleState, bool>
+    public class SemaphoreWorkflow : Workflow<SemaphoreState, bool>
     {
-        private void Log(ThrottleState state, LogLevel logLevel, string message)
+        private void Log(SemaphoreState state, LogLevel logLevel, string message)
         {
             if (logLevel >= state.RuntimeConfig.logLevel)
                 state.PersistentLog.Add(message);
         }
 
-        public override async Task<bool> RunAsync(WorkflowContext context, ThrottleState state)
+        public override async Task<bool> RunAsync(WorkflowContext context, SemaphoreState state)
         {
             if (state == null)
             {
-                state = new ThrottleState();
+                state = new SemaphoreState();
                 context.ContinueAsNew(state, true);
                 return true;
             }
@@ -54,7 +54,7 @@ namespace SemaphoreWorkflow.Workflows
             // Step 4. register runtime to wait for various external events...
             var (wait, waitCts, signal, signalCts, adjust, clearLogs, expiryScan, expiryScanCts) = CreateSignals(context);
 
-            context.SetCustomStatus(new ThrottleSummary
+            context.SetCustomStatus(new SemaphoreSummary
             {
                 ActiveWaits = state.ActiveWaits.Count(),
                 PendingWaits = state.PendingWaits.Count(),
@@ -111,7 +111,7 @@ namespace SemaphoreWorkflow.Workflows
             return true;
         }
 
-        private async Task SendProceedEvents(WorkflowContext context, ThrottleState state)
+        private async Task SendProceedEvents(WorkflowContext context, SemaphoreState state)
         {
             while (state.PendingWaits.Any() &&
                             (state.ActiveWaits.Count() < state.RuntimeConfig.MaxConcurrency))
@@ -146,7 +146,7 @@ namespace SemaphoreWorkflow.Workflows
             return (wait, waitCts, signal, signalCts, adjust, clearLogs, expiryScan, expiryScanCts);
         }
 
-        private async Task<bool> HandleAllPendingSignals(WorkflowContext context, ThrottleState state)
+        private async Task<bool> HandleAllPendingSignals(WorkflowContext context, SemaphoreState state)
         {
             while (state.PendingSignals.Any())
             {
@@ -161,7 +161,7 @@ namespace SemaphoreWorkflow.Workflows
             }
             return false;
         }
-        private async Task ScanForExpiredWaits(WorkflowContext context, ThrottleState state)
+        private async Task ScanForExpiredWaits(WorkflowContext context, SemaphoreState state)
         {
             if (state.DoExpiryScan)
             {
@@ -205,7 +205,7 @@ namespace SemaphoreWorkflow.Workflows
         public string ProceedEventName { get; set; }
     }
 
-    public class ThrottleState
+    public class SemaphoreState
     {
         public RuntimeConfig RuntimeConfig { get; set; } = new RuntimeConfig();
         public Queue<WaitEvent> PendingWaits { get; set; } = new Queue<WaitEvent>();
@@ -233,7 +233,7 @@ namespace SemaphoreWorkflow.Workflows
         Info = 1,
     }
 
-    public class ThrottleSummary
+    public class SemaphoreSummary
     {
         public int ActiveWaits { get; set; }
         public int PendingWaits { get; set; }

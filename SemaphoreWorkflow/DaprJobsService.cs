@@ -10,13 +10,13 @@ namespace SemaphoreWorkflow
             this.httpClient = httpClient;
             this.logger = logger;
         }
-        public async Task EnsureThrottleJobIsRunning()
+        public async Task EnsureSemaphoreJobIsRunning(string semaphoreWorkflowId)
         {
-            var result = await httpClient.GetAsync("ensurethrottle");
-            logger.LogDebug($"GET job `ensure-throttle` result : {result.StatusCode.ToString()}");
+            var result = await httpClient.GetAsync(semaphoreWorkflowId);
+            logger.LogDebug($"GET job `{semaphoreWorkflowId}` result : {result.StatusCode.ToString()}");
             if (!result.IsSuccessStatusCode)
             {
-                var createResult = await httpClient.PostAsJsonAsync("ensurethrottle", new
+                var createResult = await httpClient.PostAsJsonAsync(semaphoreWorkflowId, new
                 {
                     data = new
                     {
@@ -24,7 +24,7 @@ namespace SemaphoreWorkflow
                     },
                     schedule = "@every 10s"
                 });
-                logger.LogInformation($"CREATE job `ensure-throttle` result : {createResult.StatusCode.ToString()}");
+                logger.LogInformation($"CREATE job `{semaphoreWorkflowId}` result : {createResult.StatusCode.ToString()}");
                 createResult.EnsureSuccessStatusCode();
             }
         }

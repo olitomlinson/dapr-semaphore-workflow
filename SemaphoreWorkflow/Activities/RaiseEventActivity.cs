@@ -39,11 +39,13 @@ namespace SemaphoreWorkflow.Activities
 
         public override async Task<bool> RunAsync(WorkflowActivityContext context, WaitEvent wait)
         {
-            this.logger.LogInformation($"[ {context.InstanceId} ] Raising WAIT event to 'throttle' workflow");
+            var semaphoreWorkflowId = Environment.GetEnvironmentVariable("SEMAPHORE_WORKFLOW_INSTANCE_ID");
 
-            await _daprWorkflowClient.RaiseEventAsync("throttle", "wait", wait);
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raising WAIT event to '{semaphoreWorkflowId}' Semaphore Workflow");
 
-            this.logger.LogInformation($"[ {context.InstanceId} ] Raised WAIT event to 'throttle' workflow");
+            await _daprWorkflowClient.RaiseEventAsync(semaphoreWorkflowId, "wait", wait);
+
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raised WAIT event to '{semaphoreWorkflowId}' Semaphore Workflow");
 
             return true;
         }
@@ -62,11 +64,13 @@ namespace SemaphoreWorkflow.Activities
 
         public override async Task<bool> RunAsync(WorkflowActivityContext context, SignalEvent signal)
         {
-            this.logger.LogInformation($"[ {context.InstanceId} ] Raising SIGNAL event to 'throttle' workflow");
+            var semaphoreWorkflowId = Environment.GetEnvironmentVariable("SEMAPHORE_WORKFLOW_INSTANCE_ID");
 
-            await _daprWorkflowClient.RaiseEventAsync("throttle", "signal", signal);
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raising SIGNAL event to '{semaphoreWorkflowId}' Semaphore Workflow");
 
-            this.logger.LogInformation($"[ {context.InstanceId} ] Raised SIGNAL event to 'throttle' workflow");
+            await _daprWorkflowClient.RaiseEventAsync(semaphoreWorkflowId, "signal", signal);
+
+            this.logger.LogInformation($"[ {context.InstanceId} ] Raised SIGNAL event to '{semaphoreWorkflowId}' Semaphore Workflow");
 
             return true;
         }
