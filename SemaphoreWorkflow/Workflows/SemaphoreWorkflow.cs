@@ -97,6 +97,7 @@ namespace SemaphoreWorkflow.Workflows
                 expiryScanCts.Cancel();
 
                 state.PersistentLog = [];
+                state.CompletedWaits = [];
                 Log(state, LogLevel.Debug, $"[{context.CurrentUtcDateTime:yyyy-MM-dd HH:mm:ss}] Logs cleared manually");
             }
             else if (winner == expiryScan)
