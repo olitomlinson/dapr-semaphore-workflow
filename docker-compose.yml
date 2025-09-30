@@ -14,19 +14,33 @@ services:
       - network
   semaphoreworkflow-dapr:
     image: "daprio/daprd:${DAPR_RUNTIME_VERSION}"
-    command: ["./daprd",
-      "-app-id", "semaphore",
-      "-app-port", "5116",
-      "-placement-host-address", "placement:50005",
-      "-scheduler-host-address", "scheduler-0:50006",
-      "-resources-path", "/components",
-      "-config", "/dapr-config/config.yml",
-      "-log-level","debug",
-      "-enable-app-health-check", "true",
-      "-app-health-check-path", "/health",
-      "-app-health-probe-interval", "10",
-      "-app-health-probe-timeout", "1000",
-      "-app-health-threshold", "1"
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "semaphore",
+        "-app-port",
+        "5116",
+        "-placement-host-address",
+        "placement:50005",
+        "-scheduler-host-address",
+        "scheduler-0:50006,scheduler-1:50006,scheduler-2:50006",
+        "-resources-path",
+        "/components",
+        "-config",
+        "/dapr-config/config.yml",
+        "-log-level",
+        "info",
+        "-enable-app-health-check",
+        "true",
+        "-app-health-check-path",
+        "/health",
+        "-app-health-probe-interval",
+        "10",
+        "-app-health-probe-timeout",
+        "1000",
+        "-app-health-threshold",
+        "1",
       ]
     volumes:
       - "./components/:/components"
@@ -42,11 +56,44 @@ services:
   # ############################
   scheduler-0:
     image: "daprio/dapr:${DAPR_SCHEDULER_VERSION}"
-    command: ["./scheduler", 
-      "--etcd-data-dir", "/var/run/dapr/scheduler"
-    ]
-    volumes: 
+    command:
+      [
+        "./scheduler",
+        "--etcd-data-dir",
+        "/var/run/dapr/scheduler",
+        "--log-level",
+        "warn",
+      ]
+    volumes:
       - ./dapr_scheduler/0:/var/run/dapr/scheduler
+    networks:
+      - network
+  scheduler-1:
+    image: "daprio/dapr:${DAPR_SCHEDULER_VERSION}"
+    command:
+      [
+        "./scheduler",
+        "--etcd-data-dir",
+        "/var/run/dapr/scheduler",
+        "--log-level",
+        "warn",
+      ]
+    volumes:
+      - ./dapr_scheduler/1:/var/run/dapr/scheduler
+    networks:
+      - network
+  scheduler-2:
+    image: "daprio/dapr:${DAPR_SCHEDULER_VERSION}"
+    command:
+      [
+        "./scheduler",
+        "--etcd-data-dir",
+        "/var/run/dapr/scheduler",
+        "--log-level",
+        "warn",
+      ]
+    volumes:
+      - ./dapr_scheduler/2:/var/run/dapr/scheduler
     networks:
       - network
   ############################
@@ -54,9 +101,7 @@ services:
   ############################
   placement:
     image: "daprio/dapr:${DAPR_PLACEMENT_VERSION}"
-    command: ["./placement", 
-      "-port", "50005",
-      "-log-level","warn"]
+    command: ["./placement", "-port", "50005", "-log-level", "warn"]
     networks:
       - network
   postgres-db:
@@ -66,16 +111,16 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=wO2VGDsMKR
       - max_wal_size=2GB
-    healthcheck :
-      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres" ]
-      interval : 5s
-      timeout : 5s
-      retries : 5
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "postgres", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
-      -  5432:5432
+      - 5432:5432
     networks:
       - network
-    volumes: 
+    volumes:
       - postgres-db-16-2:/var/lib/postgresql/data
 networks:
   network:
