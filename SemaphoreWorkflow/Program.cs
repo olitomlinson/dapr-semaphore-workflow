@@ -57,7 +57,9 @@ app.MapPost("/job/{semaphoreWorkflowId}", async (DaprWorkflowClient workflowClie
     try
     {
         var SemaphoreState = await workflowClient.GetWorkflowStateAsync(semaphoreWorkflowId, false);
-        if (!SemaphoreState.Exists || !SemaphoreState.IsWorkflowRunning)
+        if (SemaphoreState is null)
+            createSemaphoreWorkflowInstance = true;
+        else if (!SemaphoreState.IsWorkflowRunning)
             createSemaphoreWorkflowInstance = true;
     }
     catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.Unknown)

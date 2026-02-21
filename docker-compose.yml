@@ -104,6 +104,20 @@ services:
     command: ["./placement", "-port", "50005", "-log-level", "warn"]
     networks:
       - network
+  ############################
+  # Diagrid Workflow Dashboard
+  ############################
+  workflow-dashboard:
+    image: ghcr.io/diagridio/diagrid-dashboard:latest
+    restart: always
+    environment:
+      - COMPONENT_FILE=/app/components/custom_state.yaml
+    ports:
+      - 8080:8080
+    networks:
+      - network
+    volumes:
+      - "./components/statestore-pg-v2.yaml:/app/components/custom_state.yaml"
   postgres-db:
     image: postgres:16.2-alpine
     restart: always
