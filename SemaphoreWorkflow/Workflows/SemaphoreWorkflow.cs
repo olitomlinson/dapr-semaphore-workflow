@@ -219,7 +219,7 @@ namespace SemaphoreWorkflow.Workflows
 
     public class RuntimeConfig
     {
-        public int MaxConcurrency { get; set; } = 10;
+        public int MaxConcurrency { get; set; } = 100;
 
         public int DefaultTTLInSeconds { get; set; } = 1000;
 

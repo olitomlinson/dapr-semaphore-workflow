@@ -85,7 +85,7 @@ app.MapPost("/bulk-schedule-constrained-workflows", async ([FromQuery(Name = "pr
     var session = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Tuple<string, int>(prefix, count.Value))));
 
     var cts = new CancellationTokenSource();
-    var options = new ParallelOptions() { MaxDegreeOfParallelism = 1, CancellationToken = cts.Token };
+    var options = new ParallelOptions() { MaxDegreeOfParallelism = 10, CancellationToken = cts.Token };
     var ids = new List<string>();
     await Parallel.ForEachAsync(Enumerable.Range(0, count.Value), options, async (i, token) =>
     {
